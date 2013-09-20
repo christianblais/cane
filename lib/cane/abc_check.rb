@@ -37,14 +37,14 @@ module Cane
       return [] if opts[:no_abc]
 
       order worker.map(file_names) {|file_name|
-        find_violations(file_name)
+        find_violations(file_name, Cane::File.contents(file_name))
       }.flatten
     end
 
-    protected
+    def find_violations(file_name, content = nil)
+      content ||= Cane::File.contents(file_name)
 
-    def find_violations(file_name)
-      ast = Ripper::SexpBuilder.new(Cane::File.contents(file_name)).parse
+      ast = Ripper::SexpBuilder.new(content).parse
       case ast
       when nil
         InvalidAst.new(file_name)
@@ -52,6 +52,8 @@ module Cane
         RubyAst.new(file_name, max_allowed_complexity, ast, exclusions)
       end.violations
     end
+
+    protected
 
     # Null object for when the file cannot be parsed.
     class InvalidAst < Struct.new(:file_name)
@@ -187,7 +189,7 @@ module Cane
     end
 
     def max_allowed_complexity
-      opts.fetch(:abc_max)
+      opts.fetch(:abc_max, 1)
     end
 
     def exclusions
